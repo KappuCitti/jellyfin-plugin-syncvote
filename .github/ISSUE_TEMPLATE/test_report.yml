@@ -24,7 +24,7 @@ body:
     attributes:
       label: Your setup
       description: Jellyfin version, SyncVote version (Dashboard → Plugins), operating system or container image.
-      placeholder: "Jellyfin 10.11.11, SyncVote 0.2.0.1, Docker (linuxserver image)"
+      placeholder: "Jellyfin 10.11.11, SyncVote 0.2.1.1, Docker (linuxserver image)"
     validations:
       required: true
 

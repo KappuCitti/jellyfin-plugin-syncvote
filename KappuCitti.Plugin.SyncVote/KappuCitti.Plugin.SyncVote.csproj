@@ -3,7 +3,7 @@
   <PropertyGroup>
     <RootNamespace>KappuCitti.Plugin.SyncVote</RootNamespace>
     <!-- Release number; the build script overrides it (-p:ReleaseVersion=1.2.3). The 4th digit is added below. -->
-    <ReleaseVersion Condition="'$(ReleaseVersion)' == ''">0.2.0</ReleaseVersion>
+    <ReleaseVersion Condition="'$(ReleaseVersion)' == ''">0.2.1</ReleaseVersion>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <NoWarn>$(NoWarn);CA2227;CA1002;CA2007;CS1591;CA1819;CA1815;CA1000;CA1859;CA1873</NoWarn>

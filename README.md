@@ -63,14 +63,14 @@ Pick the row of your server:
 
 | Your Jellyfin server | SyncVote package | Status |
 |:---|:---|:---|
-| **12.x** | `0.2.0.2` | ✅ Supported, tested on 12.4 |
-| **10.11.x** | `0.2.0.1` | ✅ Supported, tested on 10.11.11 |
-| **10.10.x** | `0.2.0.0` | ✅ Supported, tested on 10.10.7 |
+| **12.x** | `0.2.1.2` | ✅ Supported, tested on 12.4 |
+| **10.11.x** | `0.2.1.1` | ✅ Supported, tested on 10.11.11 |
+| **10.10.x** | `0.2.1.0` | ✅ Supported, tested on 10.10.7 |
 | 10.9.x | – | ⚠️ Not offered by the catalog, not tested |
 | 10.8.x and older | – | ❌ Not supported (needs a Jellyfin feature that appeared in 10.9) |
 
 The last digit of the version is the Jellyfin generation (`.0` → 10.10, `.1` → 10.11, `.2` → 12), and the first three are the
-release (`0.2.0` above). So **`0.2.0.0` is the build for Jellyfin 10.10 only**, not for newer servers.
+release (`0.2.1` above). So **`0.2.1.0` is the build for Jellyfin 10.10 only**, not for newer servers.
 
 > [!NOTE]
 > You do not have to choose: add the repository (see below) and Jellyfin offers the package made for your server.
