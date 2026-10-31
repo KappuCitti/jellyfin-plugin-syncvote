@@ -27,7 +27,7 @@ body:
     attributes:
       label: Exact Jellyfin version
       description: Shown on the Dashboard home page.
-      placeholder: "12.2.0"
+      placeholder: "12.4.0"
     validations:
       required: true
 

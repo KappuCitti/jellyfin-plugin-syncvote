@@ -16,9 +16,9 @@ public class PluginConfiguration : BasePluginConfiguration
 
     /// <summary>
     /// Gets or sets a value indicating whether every user can see every room.
-    /// When false, a user only sees the rooms they belong to or the one of their SyncPlay group.
+    /// When false (the default), a user only sees the rooms they belong to or the one of their SyncPlay group.
     /// </summary>
-    public bool AllowPublicRooms { get; set; } = true;
+    public bool AllowPublicRooms { get; set; } = false;
 
     /// <summary>
     /// Gets or sets the maximum number of members per room.

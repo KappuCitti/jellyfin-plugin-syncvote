@@ -326,7 +326,8 @@ try {
     $spare = Invoke-RestMethod "$Base/Users/New" -Method Post -Headers $root.Headers -ContentType "application/json" -Body (@{ Name = "svtest5"; Password = "svtest-pw" } | ConvertTo-Json)
     $u5 = Login "svtest5" "svtest-pw" "dev5"
     $outside = Call $u5 POST "/SyncVote/Room/$($round.Body.Id)/Join" @{ Code = $r2.Body.Code }
-    Check "the right code is not enough outside the SyncPlay group of the room" ($outside.Status -eq 403 -and $outside.Body.Error -eq "Forbidden") "status $($outside.Status) $($outside.Body | ConvertTo-Json -Compress)"
+    # Refused as Forbidden when rooms are shown to everyone, as NotFound (the room is not even visible) when they are not, the default.
+    Check "the right code is not enough outside the SyncPlay group of the room" (($outside.Status -eq 403 -and $outside.Body.Error -eq "Forbidden") -or ($outside.Status -eq 404 -and $outside.Body.Error -eq "NotFound")) "status $($outside.Status) $($outside.Body | ConvertTo-Json -Compress)"
     Invoke-RestMethod "$Base/Users/$($spare.Id)" -Method Delete -Headers $root.Headers | Out-Null
     Check "the new one is" ((Call $c3 POST "/SyncVote/Room/$($round.Body.Id)/Join" @{ Code = $r2.Body.Code }).Status -eq 200)
     Check "a member can vote" ((Call $c3 POST "/SyncVote/Vote" @{ RoomId = $round.Body.Id; ItemId = $items[0].Id; IsLike = $true }).Status -eq 204)

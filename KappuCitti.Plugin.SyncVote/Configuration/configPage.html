@@ -326,7 +326,7 @@
                         if (supported.indexOf(sort) === -1) sort = "Random";
                         document.getElementById("DefaultSortBy").value = sort;
                         document.getElementById("Language").value = config.Language || "Auto";
-                        document.getElementById("AllowPublicRooms").checked = config.AllowPublicRooms !== false;
+                        document.getElementById("AllowPublicRooms").checked = config.AllowPublicRooms === true;
                         document.getElementById("AutoStartVoting").checked = config.AutoStartVoting === true;
                         document.getElementById("DefaultCanOrganize").checked = config.DefaultCanOrganize !== false;
                         document.getElementById("DefaultCanVote").checked = config.DefaultCanVote !== false;

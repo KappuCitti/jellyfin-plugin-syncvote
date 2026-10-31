@@ -45,7 +45,7 @@ dotnet build KappuCitti.Plugin.SyncVote -p:JellyfinVersion=10.10.7     # one gen
 - Each package is a zip with **only** `KappuCitti.Plugin.SyncVote.dll`: Jellyfin provides every other assembly
   (the Jellyfin packages are referenced with `ExcludeAssets=runtime`).
 - We compile against the *oldest* version we test of each generation (10.10.7, 10.11.0, 12.0.0) and check it on a newer one
-  (10.10.7, 10.11.11, 12.2.0).
+  (10.10.7, 10.11.11, 12.4.0).
 - **Version numbers** are `X.Y.Z.<digit>`. The catalog of a server offers the highest version whose ABI it satisfies, so the
   digit must grow with the generation: that is how every server ends up with its own build.
 

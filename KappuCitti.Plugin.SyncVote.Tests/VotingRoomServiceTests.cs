@@ -528,8 +528,19 @@ public class VotingRoomServiceTests
     [Fact]
     public void PublicRooms_AreVisibleToEveryone()
     {
+        _settings.Configuration.AllowPublicRooms = true;
         NewRoom();
         Assert.Single(_service.GetVisibleRooms(Bob, null, false));
+    }
+
+    [Fact]
+    public void RoomsAreNotShownToEveryoneByDefault()
+    {
+        Assert.False(new PluginConfiguration().AllowPublicRooms);
+
+        NewRoom("group-1");
+        Assert.Empty(_service.GetVisibleRooms(Bob, null, false));
+        Assert.Single(_service.GetVisibleRooms(Bob, "group-1", false));
     }
 
     [Fact]

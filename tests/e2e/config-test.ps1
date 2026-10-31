@@ -37,7 +37,7 @@ function Set-Config($changes) {
 
 try {
     Write-Host "== defaults"
-    Check "defaults are as documented" ($original.DefaultTimeLimit -ge 1 -and $original.InjectWebClient -eq $true -and $original.DefaultCanOrganize -eq $true -and $original.DefaultCanVote -eq $true -and $original.WrongCodeAttempts -eq 7) ($original | ConvertTo-Json -Compress)
+    Check "defaults are as documented" ($original.DefaultTimeLimit -ge 1 -and $original.InjectWebClient -eq $true -and $original.DefaultCanOrganize -eq $true -and $original.DefaultCanVote -eq $true -and $original.WrongCodeAttempts -eq 7 -and $original.AllowPublicRooms -eq $false) ($original | ConvertTo-Json -Compress)
 
     # These steps switch the display language of the SERVER for a moment: only with -ChangeServerLanguage, on a server nobody is using.
     if ($ChangeServerLanguage) {
@@ -111,6 +111,9 @@ try {
     $r = Call $root GET "/SyncVote/Permissions?userId=$($sv.UserId)"
     Check "an administrator can read the permissions of another user" ($r.Status -eq 200 -and $r.Body.CanVote -eq $false) "status $($r.Status)"
     Set-Config @{ DefaultCanOrganize = $true; UserPermissionOverrides = @() }
+
+    # The next checks join rooms of a group the user is not in: that needs every room to be visible.
+    Set-Config @{ AllowPublicRooms = $true }
 
     Write-Host "== max members"
     Set-Config @{ MaxRoomMembers = 1 }

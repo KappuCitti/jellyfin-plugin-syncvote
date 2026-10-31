@@ -62,7 +62,7 @@ Pick the row of your server:
 
 | Your Jellyfin server | SyncVote package | Status |
 |:---|:---|:---|
-| **12.x** | `0.2.0.2` | ✅ Supported, tested on 12.2 |
+| **12.x** | `0.2.0.2` | ✅ Supported, tested on 12.4 |
 | **10.11.x** | `0.2.0.1` | ✅ Supported, tested on 10.11.11 |
 | **10.10.x** | `0.2.0.0` | ✅ Supported, tested on 10.10.7 |
 | 10.9.x | – | ⚠️ Not offered by the catalog, not tested |
@@ -158,7 +158,7 @@ the changes away). Both buttons stay off until something differs from what is sa
 
 | Option | What it does |
 |:---|:---|
-| Show every room to everyone | When off, people only see rooms they are in or the one of their SyncPlay group |
+| Show every room to everyone | Off by default: people only see the rooms they are in or the one of their SyncPlay group |
 | Users can organize / can vote | The default for everybody, users created later included; administrators can always do both |
 | Permissions per user | A collapsed table of all users with a box for each of the two permissions, and a filter by name |
 
