@@ -228,6 +228,10 @@ try {
     Set-Config @{ DefaultCanOrganize = $true; DefaultCanVote = $true; UserPermissionOverrides = @(@{ UserId = $sv.UserId; CanVote = $false }, @{ UserId = $ghost; CanOrganize = $false }) }
     Open-ConfigPage
 
+    # Every drop-down has its arrow next to it, and nothing else carries one (a select outside a select container drops it at the top of the page).
+    $arrows = Js "JSON.stringify(Array.from(document.querySelectorAll('[data-panel=general] select')).map(function (s) { var r = s.getBoundingClientRect(); var a = s.parentElement.querySelector('.selectArrow'); var ar = a ? a.getBoundingClientRect() : null; return { id: s.id, near: !!ar && ar.top >= r.top - 2 && ar.bottom <= r.bottom + 2 && ar.left >= r.left && ar.right <= r.right + 2 } }))" | ConvertFrom-Json
+    $stray = @($arrows | Where-Object { -not $_.near })
+    Check "every list of the General tab has its arrow beside it, none at the top of the page" ($arrows.Count -eq 3 -and $stray.Count -eq 0 -and (Js "document.querySelectorAll('[data-panel=general] .selectArrow').length") -eq 3) (($stray | ForEach-Object { $_.id }) -join ", ")
     Check "the General tab is shown first" ((Js "!document.querySelector('[data-panel=general]').hidden && document.querySelector('[data-panel=permissions]').hidden"))
     Check "the settings moved to the Permissions tab are not on General" ((Js "!document.querySelector('[data-panel=general] #AllowPublicRooms') && !document.querySelector('[data-panel=general] #DefaultCanVote')"))
     Js "document.querySelector('[data-tab=permissions]').click(); true" | Out-Null
