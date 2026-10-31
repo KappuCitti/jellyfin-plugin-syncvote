@@ -513,7 +513,8 @@ public class VotingRoomService
     }
 
     /// <summary>
-    /// Gets the permissions of a user: server administrators can always do everything.
+    /// Gets the permissions of a user: server administrators can always do everything, the others follow their exception
+    /// for that permission if they have one and the default otherwise.
     /// </summary>
     /// <param name="userId">The user.</param>
     /// <param name="isAdministrator">Whether the user is a server administrator.</param>

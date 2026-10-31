@@ -63,7 +63,7 @@ public class PluginConfiguration : BasePluginConfiguration
     public bool DefaultCanVote { get; set; } = true;
 
     /// <summary>
-    /// Gets or sets the per-user permission overrides.
+    /// Gets or sets the per-user permission overrides, edited in the settings page.
     /// </summary>
-    public List<UserPermissions> UserPermissionOverrides { get; set; } = new();
+    public List<UserPermissionOverride> UserPermissionOverrides { get; set; } = new();
 }

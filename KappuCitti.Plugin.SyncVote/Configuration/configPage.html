@@ -6,111 +6,168 @@
     </head>
     <body>
         <div id="SyncVoteConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-select,emby-checkbox">
+            <style>
+                #SyncVoteConfigPage .svTabs { display: flex; gap: 4px; margin-bottom: 1.5em; border-bottom: 1px solid rgba(128, 128, 128, 0.35); }
+                #SyncVoteConfigPage .svTab { background: none; border: 0; border-bottom: 3px solid transparent; margin-bottom: -1px; padding: 0.7em 1.2em; font: inherit; color: inherit; opacity: 0.65; cursor: pointer; }
+                #SyncVoteConfigPage .svTab:hover { opacity: 1; }
+                #SyncVoteConfigPage .svTab.active { opacity: 1; border-bottom-color: currentColor; font-weight: 600; }
+                #SyncVoteConfigPage .svUsersBox { max-height: 55vh; overflow-y: auto; margin-top: 0.8em; }
+                #SyncVoteConfigPage .svUsers { width: 100%; border-collapse: collapse; }
+                #SyncVoteConfigPage .svUsers th { text-align: left; padding: 0.5em 0.6em; position: sticky; top: 0; background: inherit; border-bottom: 1px solid rgba(128, 128, 128, 0.35); }
+                #SyncVoteConfigPage .svUsers td { padding: 0.15em 0.6em; border-bottom: 1px solid rgba(128, 128, 128, 0.15); }
+                #SyncVoteConfigPage .svUsers th.svCheck, #SyncVoteConfigPage .svUsers td.svCheck { width: 7em; text-align: center; }
+                /* The label of a checkbox fills its cell; shrink it to the box so the box sits under its header. */
+                #SyncVoteConfigPage .svUsers td.svCheck label { display: inline-flex; width: auto; margin: 0; padding: 0; vertical-align: middle; }
+                #SyncVoteConfigPage .svUsers td.svCheck label > span:not(.checkboxOutline) { margin: 0; padding: 0; width: 0; min-width: 0; }
+                #SyncVoteConfigPage .svUsers td.svCheck .checkboxOutline { position: static; margin: 0; }
+                #SyncVoteConfigPage .svMuted { opacity: 0.6; font-size: 0.85em; margin-left: 0.5em; }
+                #SyncVoteConfigPage .svButtons { display: flex; gap: 12px; margin-top: 1.5em; }
+                #SyncVoteConfigPage .svButtons button { flex: 1; }
+                /* Jellyfin draws a disabled button like an enabled one: make it plainly off. */
+                #SyncVoteConfigPage .svButtons button[disabled] { opacity: 0.35; filter: grayscale(1); cursor: not-allowed; pointer-events: none; }
+            </style>
             <div data-role="content">
                 <div class="content-primary">
                     <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px">
                         <h2 class="sectionTitle" style="margin: 0" data-i18n="config.title">SyncVote Settings</h2>
                     </div>
+                    <div class="svTabs">
+                        <button type="button" class="svTab active" data-tab="general" data-i18n="config.tab.general">General</button>
+                        <button type="button" class="svTab" data-tab="permissions" data-i18n="config.tab.permissions">Permissions</button>
+                    </div>
                     <form id="SyncVoteConfigForm">
-                        <div class="verticalSection">
-                            <div class="inputContainer">
-                                <label class="inputLabel inputLabelUnfocused" for="DefaultTimeLimit" data-i18n="config.defaultTimeLimit">Default Time Limit (minutes)</label>
-                                <select is="emby-select" id="DefaultTimeLimit" name="DefaultTimeLimit">
-                                    <option value="1">1</option>
-                                    <option value="3">3</option>
-                                    <option value="5">5</option>
-                                    <option value="10">10</option>
-                                    <option value="15">15</option>
-                                </select>
+                        <div data-panel="general">
+                            <div class="verticalSection">
+                                <div class="inputContainer">
+                                    <label class="inputLabel inputLabelUnfocused" for="DefaultTimeLimit" data-i18n="config.defaultTimeLimit">Default Time Limit (minutes)</label>
+                                    <select is="emby-select" id="DefaultTimeLimit" name="DefaultTimeLimit">
+                                        <option value="1">1</option>
+                                        <option value="3">3</option>
+                                        <option value="5">5</option>
+                                        <option value="10">10</option>
+                                        <option value="15">15</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="verticalSection">
+                                <div class="inputContainer">
+                                    <label class="inputLabel inputLabelUnfocused" for="MaxRoomMembers" data-i18n="config.maxRoomMembers">Max Room Members</label>
+                                    <input is="emby-input" type="number" id="MaxRoomMembers" name="MaxRoomMembers" min="2" max="50" />
+                                </div>
+                            </div>
+
+                            <div class="verticalSection">
+                                <div class="inputContainer">
+                                    <label class="inputLabel inputLabelUnfocused" for="WrongCodeAttempts" data-i18n="config.wrongCodeAttempts">Wrong room codes allowed</label>
+                                    <input is="emby-input" type="number" id="WrongCodeAttempts" name="WrongCodeAttempts" min="1" max="20" />
+                                    <div class="fieldDescription" data-i18n="config.wrongCodeAttempts.desc">How many wrong codes a user can type for a room that asks for one before they have to wait (30 seconds, then longer with each further mistake).</div>
+                                </div>
+                            </div>
+
+                            <div class="verticalSection">
+                                <div class="inputContainer">
+                                    <label class="inputLabel inputLabelUnfocused" for="DefaultSortBy" data-i18n="config.defaultSort">Default Sort Order</label>
+                                    <select is="emby-select" id="DefaultSortBy" name="DefaultSortBy">
+                                        <option value="Random" data-i18n="sort.random">Random</option>
+                                        <option value="Title" data-i18n="sort.title">Title (A–Z)</option>
+                                        <option value="CommunityRating" data-i18n="sort.rating">Rating</option>
+                                        <option value="PremiereDate" data-i18n="sort.release">Release date</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="verticalSection">
+                                <div class="selectContainer">
+                                    <label class="selectLabel" for="Language" data-i18n="config.language">Language</label>
+                                    <select is="emby-select" id="Language" name="Language">
+                                        <option value="Auto" data-i18n="config.language.auto">Same as the server</option>
+                                        <option value="en">English</option>
+                                        <option value="it">Italiano</option>
+                                    </select>
+                                    <div class="fieldDescription" data-i18n="config.language.desc">Language of the SyncVote screens. By default it follows the display language of the server.</div>
+                                </div>
+                            </div>
+
+                            <div class="checkboxContainer checkboxContainer-withDescription">
+                                <label>
+                                    <input is="emby-checkbox" type="checkbox" id="AutoStartVoting" name="AutoStartVoting" />
+                                    <span data-i18n="config.autoStart">Auto-start Voting</span>
+                                </label>
+                                <div class="fieldDescription" data-i18n="config.autoStart.desc">Automatically start voting when all room members have joined</div>
+                            </div>
+
+                            <div class="checkboxContainer checkboxContainer-withDescription">
+                                <label>
+                                    <input is="emby-checkbox" type="checkbox" id="InjectWebClient" name="InjectWebClient" />
+                                    <span data-i18n="config.injectWebClient">Add SyncVote to the web interface</span>
+                                </label>
+                                <div class="fieldDescription" data-i18n="config.injectWebClient.desc">The plugin adds its own script to the Jellyfin web client. Turn off only if you load it with another plugin. Takes effect on the next page load.</div>
                             </div>
                         </div>
 
-                        <div class="verticalSection">
-                            <div class="inputContainer">
-                                <label class="inputLabel inputLabelUnfocused" for="MaxRoomMembers" data-i18n="config.maxRoomMembers">Max Room Members</label>
-                                <input is="emby-input" type="number" id="MaxRoomMembers" name="MaxRoomMembers" min="2" max="50" />
+                        <div data-panel="permissions" hidden>
+                            <div class="checkboxContainer checkboxContainer-withDescription">
+                                <label>
+                                    <input is="emby-checkbox" type="checkbox" id="AllowPublicRooms" name="AllowPublicRooms" />
+                                    <span data-i18n="config.allowPublicRooms">Allow Public Voting Rooms</span>
+                                </label>
+                                <div class="fieldDescription" data-i18n="config.allowPublicRooms.desc">Allow users to create public voting rooms that anyone can join</div>
                             </div>
-                        </div>
 
-                        <div class="verticalSection">
-                            <div class="inputContainer">
-                                <label class="inputLabel inputLabelUnfocused" for="WrongCodeAttempts" data-i18n="config.wrongCodeAttempts">Wrong room codes allowed</label>
-                                <input is="emby-input" type="number" id="WrongCodeAttempts" name="WrongCodeAttempts" min="1" max="20" />
-                                <div class="fieldDescription" data-i18n="config.wrongCodeAttempts.desc">How many wrong codes a user can type for a room that asks for one before they have to wait (30 seconds, then longer with each further mistake).</div>
+                            <div class="checkboxContainer checkboxContainer-withDescription">
+                                <label>
+                                    <input is="emby-checkbox" type="checkbox" id="DefaultCanOrganize" name="DefaultCanOrganize" />
+                                    <span data-i18n="config.defaultCanOrganize">Users can organize voting rooms</span>
+                                </label>
+                                <div class="fieldDescription" data-i18n="config.defaultCanOrganize.desc">Administrators can always organize. This is the default of everybody, including users created later; the table below makes exceptions.</div>
                             </div>
-                        </div>
 
-                        <div class="verticalSection">
-                            <div class="inputContainer">
-                                <label class="inputLabel inputLabelUnfocused" for="DefaultSortBy" data-i18n="config.defaultSort">Default Sort Order</label>
-                                <select is="emby-select" id="DefaultSortBy" name="DefaultSortBy">
-                                    <option value="Random" data-i18n="sort.random">Random</option>
-                                    <option value="Title" data-i18n="sort.title">Title (A–Z)</option>
-                                    <option value="CommunityRating" data-i18n="sort.rating">Rating</option>
-                                    <option value="PremiereDate" data-i18n="sort.release">Release date</option>
-                                </select>
+                            <div class="checkboxContainer checkboxContainer-withDescription">
+                                <label>
+                                    <input is="emby-checkbox" type="checkbox" id="DefaultCanVote" name="DefaultCanVote" />
+                                    <span data-i18n="config.defaultCanVote">Users can vote</span>
+                                </label>
+                                <div class="fieldDescription" data-i18n="config.defaultCanVote.desc">Administrators can always vote. Same as above: a default, with exceptions in the table below.</div>
                             </div>
-                        </div>
 
-                        <div class="verticalSection">
-                            <div class="selectContainer">
-                                <label class="selectLabel" for="Language" data-i18n="config.language">Language</label>
-                                <select is="emby-select" id="Language" name="Language">
-                                    <option value="Auto" data-i18n="config.language.auto">Same as the server</option>
-                                    <option value="en">English</option>
-                                    <option value="it">Italiano</option>
-                                </select>
-                                <div class="fieldDescription" data-i18n="config.language.desc">Language of the SyncVote screens. By default it follows the display language of the server.</div>
+                            <details id="UserPermissionsBox" class="verticalSection">
+                                <summary style="cursor: pointer; padding: 0.5em 0">
+                                    <strong data-i18n="config.perUser.title">Permissions per user</strong>
+                                    <span class="svMuted" id="UserPermissionsCount"></span>
+                                </summary>
+                                <div class="fieldDescription" data-i18n="config.perUser.desc">A tick means the user can. Ticking or clearing a box here makes an exception to the default above; ticking or clearing the default sets the whole column. Boxes equal to the default are not saved.</div>
+                                <div class="inputContainer" style="margin-top: 1em">
+                                    <label class="inputLabel inputLabelUnfocused" for="UserFilter" data-i18n="config.perUser.filter">Filter by name</label>
+                                    <input is="emby-input" type="text" id="UserFilter" autocomplete="off" />
+                                </div>
+                                <div class="svUsersBox">
+                                    <table class="svUsers">
+                                        <thead>
+                                            <tr>
+                                                <th data-i18n="config.perUser.user">User</th>
+                                                <th class="svCheck" data-i18n="config.perUser.organize">Organize</th>
+                                                <th class="svCheck" data-i18n="config.perUser.vote">Vote</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="UserRows"></tbody>
+                                    </table>
+                                </div>
+                            </details>
+
+                            <div class="svButtons">
+                                <button is="emby-button" type="submit" class="raised button-submit" id="SyncVoteSave" disabled>
+                                    <span data-i18n="btn.save">Save</span>
+                                </button>
+                                <button is="emby-button" type="button" class="raised" id="SyncVoteCancel" disabled>
+                                    <span data-i18n="btn.cancel">Cancel</span>
+                                </button>
                             </div>
-                        </div>
-
-                        <div class="checkboxContainer checkboxContainer-withDescription">
-                            <label>
-                                <input is="emby-checkbox" type="checkbox" id="AllowPublicRooms" name="AllowPublicRooms" />
-                                <span data-i18n="config.allowPublicRooms">Allow Public Voting Rooms</span>
-                            </label>
-                            <div class="fieldDescription" data-i18n="config.allowPublicRooms.desc">Allow users to create public voting rooms that anyone can join</div>
-                        </div>
-
-                        <div class="checkboxContainer checkboxContainer-withDescription">
-                            <label>
-                                <input is="emby-checkbox" type="checkbox" id="AutoStartVoting" name="AutoStartVoting" />
-                                <span data-i18n="config.autoStart">Auto-start Voting</span>
-                            </label>
-                            <div class="fieldDescription" data-i18n="config.autoStart.desc">Automatically start voting when all room members have joined</div>
-                        </div>
-
-                        <div class="checkboxContainer checkboxContainer-withDescription">
-                            <label>
-                                <input is="emby-checkbox" type="checkbox" id="DefaultCanOrganize" name="DefaultCanOrganize" />
-                                <span data-i18n="config.defaultCanOrganize">Users can organize voting rooms</span>
-                            </label>
-                            <div class="fieldDescription" data-i18n="config.defaultCanOrganize.desc">Administrators can always organize. Per-user exceptions can be set in the plugin configuration file.</div>
-                        </div>
-
-                        <div class="checkboxContainer checkboxContainer-withDescription">
-                            <label>
-                                <input is="emby-checkbox" type="checkbox" id="DefaultCanVote" name="DefaultCanVote" />
-                                <span data-i18n="config.defaultCanVote">Users can vote</span>
-                            </label>
-                        </div>
-
-                        <div class="checkboxContainer checkboxContainer-withDescription">
-                            <label>
-                                <input is="emby-checkbox" type="checkbox" id="InjectWebClient" name="InjectWebClient" />
-                                <span data-i18n="config.injectWebClient">Add SyncVote to the web interface</span>
-                            </label>
-                            <div class="fieldDescription" data-i18n="config.injectWebClient.desc">The plugin adds its own script to the Jellyfin web client. Turn off only if you load it with another plugin. Takes effect on the next page load.</div>
-                        </div>
-
-                        <div>
-                            <button is="emby-button" type="submit" class="raised button-submit block">                                <span data-i18n="btn.save">Save</span>
-                            </button>
                         </div>
                     </form>
                 </div>
             </div>
-        
+
 
         <script type="text/javascript">
             (function () {
@@ -122,6 +179,14 @@
                     dict: {},
                     t: function (key) { return (this.dict && this.dict[key]) || null; }
                 };
+
+                // What the permissions table shows: the effective permission of every user, plus the two defaults.
+                var rows = [];
+                var defaults = { org: true, vote: true };
+                // The column as it was when its default was changed, to give it back if the default goes back.
+                var stash = { org: null, vote: null };
+                // The permissions as loaded: Save and Cancel are only on while the table differs from it.
+                var baseline = '';
 
                 // The server picks the language: its own display language, or the one chosen in this page.
                 function loadI18n() {
@@ -141,11 +206,117 @@
                     });
                 }
 
-                document.getElementById("SyncVoteConfigPage").addEventListener("pageshow", function () {
+                function text(key, fallback) { return i18n.t(key) || fallback; }
+
+                function escapeHtml(s) {
+                    return String(s).replace(/[&<>"']/g, function (c) {
+                        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+                    });
+                }
+
+                // Jellyfin writes ids without dashes in its API and the plugin configuration with them: compare them alike.
+                function normalizeId(id) { return String(id).replace(/-/g, '').toLowerCase(); }
+
+                function buildRows(config, users) {
+                    var overrides = {};
+                    (config.UserPermissionOverrides || []).forEach(function (o) { overrides[normalizeId(o.UserId)] = o; });
+                    var known = {};
+                    var result = [];
+
+                    users.forEach(function (u) {
+                        var key = normalizeId(u.Id);
+                        var o = overrides[key];
+                        var admin = !!(u.Policy && u.Policy.IsAdministrator);
+                        known[key] = true;
+                        result.push({
+                            id: u.Id, name: u.Name, admin: admin, deleted: false,
+                            // An administrator keeps whatever exception was saved for them, in case they are demoted one day.
+                            kept: admin ? o : null,
+                            org: o && o.CanOrganize !== null && o.CanOrganize !== undefined ? o.CanOrganize : defaults.org,
+                            vote: o && o.CanVote !== null && o.CanVote !== undefined ? o.CanVote : defaults.vote
+                        });
+                    });
+
+                    // Exceptions of users that do not exist any more: still listed, so they can be cleaned up.
+                    (config.UserPermissionOverrides || []).forEach(function (o) {
+                        if (known[normalizeId(o.UserId)]) return;
+                        result.push({
+                            id: o.UserId, name: null, admin: false, deleted: true, kept: null,
+                            org: o.CanOrganize !== null && o.CanOrganize !== undefined ? o.CanOrganize : defaults.org,
+                            vote: o.CanVote !== null && o.CanVote !== undefined ? o.CanVote : defaults.vote
+                        });
+                    });
+
+                    result.sort(function (a, b) {
+                        if (a.deleted !== b.deleted) return a.deleted ? 1 : -1;
+                        return String(a.name || a.id).toLowerCase().localeCompare(String(b.name || b.id).toLowerCase());
+                    });
+                    return result;
+                }
+
+                function isException(row) {
+                    return !row.admin && (row.org !== defaults.org || row.vote !== defaults.vote);
+                }
+
+                function displayName(row) {
+                    return row.deleted ? text('config.perUser.deleted', 'Deleted user') : row.name;
+                }
+
+                function snapshot() {
+                    return JSON.stringify([defaults.org, defaults.vote, rows.filter(function (row) { return !row.admin; }).map(function (row) {
+                        return [normalizeId(row.id), row.org, row.vote];
+                    })]);
+                }
+
+                function renderCount() {
+                    var n = rows.filter(isException).length;
+                    document.getElementById('UserPermissionsCount').textContent = n ? text('config.perUser.count', '{0} with exceptions').replace('{0}', n) : '';
+                    // Going back by hand to how it was loaded turns them off again.
+                    var unchanged = snapshot() === baseline;
+                    document.getElementById('SyncVoteSave').disabled = unchanged;
+                    document.getElementById('SyncVoteCancel').disabled = unchanged;
+                }
+
+                function renderRows() {
+                    var filter = document.getElementById('UserFilter').value.trim().toLowerCase();
+                    var html = rows.filter(function (row) {
+                        if (!filter) return true;
+                        return (displayName(row) + ' ' + (row.deleted ? row.id : '')).toLowerCase().indexOf(filter) !== -1;
+                    }).map(function (row) {
+                        var label = escapeHtml(displayName(row));
+                        if (row.admin) label += '<span class="svMuted">' + escapeHtml(text('config.perUser.admin', 'Administrator')) + '</span>';
+                        // The id of a deleted user is only a hint to tell two of them apart.
+                        if (row.deleted) label += '<span class="svMuted" title="' + escapeHtml(row.id) + '">' + escapeHtml(String(row.id).substring(0, 8)) + '</span>';
+                        var cell = function (col, value) {
+                            return '<td class="svCheck"><label><input is="emby-checkbox" type="checkbox" data-id="' + escapeHtml(row.id) + '" data-col="' + col + '"'
+                                + (value ? ' checked' : '') + (row.admin ? ' disabled' : '') + ' /><span></span></label></td>';
+                        };
+                        return '<tr><td>' + label + '</td>' + cell('org', row.admin || row.org) + cell('vote', row.admin || row.vote) + '</tr>';
+                    }).join('');
+                    if (!html) html = '<tr><td colspan="3" class="svMuted">' + escapeHtml(text('config.perUser.none', 'No users found')) + '</td></tr>';
+                    document.getElementById('UserRows').innerHTML = html;
+                    renderCount();
+                }
+
+                function showTab(name) {
+                    document.querySelectorAll('#SyncVoteConfigPage [data-tab]').forEach(function (b) {
+                        b.classList.toggle('active', b.getAttribute('data-tab') === name);
+                    });
+                    document.querySelectorAll('#SyncVoteConfigPage [data-panel]').forEach(function (p) {
+                        p.hidden = p.getAttribute('data-panel') !== name;
+                    });
+                }
+
+                function load() {
+                    document.getElementById('SyncVoteConfigPage').removeAttribute('data-loaded');
                     Dashboard.showLoadingMsg();
-                    loadI18n().then(function(){
-                        return ApiClient.getPluginConfiguration(pluginId);
-                    }).then(function (config) {
+                    return loadI18n().then(function () {
+                        return Promise.all([
+                            ApiClient.getPluginConfiguration(pluginId),
+                            ApiClient.getJSON(ApiClient.getUrl('Users')).catch(function () { return []; })
+                        ]);
+                    }).then(function (loaded) {
+                        var config = loaded[0];
                         document.getElementById("DefaultTimeLimit").value = config.DefaultTimeLimit || 5;
                         document.getElementById("MaxRoomMembers").value = config.MaxRoomMembers || 10;
                         document.getElementById("WrongCodeAttempts").value = config.WrongCodeAttempts || 7;
@@ -160,28 +331,141 @@
                         document.getElementById("DefaultCanOrganize").checked = config.DefaultCanOrganize !== false;
                         document.getElementById("DefaultCanVote").checked = config.DefaultCanVote !== false;
                         document.getElementById("InjectWebClient").checked = config.InjectWebClient !== false;
+
+                        defaults.org = config.DefaultCanOrganize !== false;
+                        defaults.vote = config.DefaultCanVote !== false;
+                        stash = { org: null, vote: null };
+                        rows = buildRows(config, Array.isArray(loaded[1]) ? loaded[1] : []);
+                        baseline = snapshot();
+                        renderRows();
+                        document.getElementById('SyncVoteConfigPage').setAttribute('data-loaded', '');
                         Dashboard.hideLoadingMsg();
+                    });
+                }
+
+                var page = document.getElementById("SyncVoteConfigPage");
+                page.addEventListener("pageshow", function () {
+                    showTab('general');
+                    document.getElementById('UserFilter').value = '';
+                    load();
+                });
+
+                page.querySelectorAll('[data-tab]').forEach(function (button) {
+                    button.addEventListener('click', function () { showTab(button.getAttribute('data-tab')); });
+                });
+
+                document.getElementById('UserFilter').addEventListener('input', renderRows);
+
+                // A box in the table is an exception to the default of its column (or the end of one).
+                document.getElementById('UserRows').addEventListener('change', function (e) {
+                    var box = e.target;
+                    var col = box.getAttribute && box.getAttribute('data-col');
+                    if (!col) return;
+                    var id = normalizeId(box.getAttribute('data-id'));
+                    rows.forEach(function (row) { if (normalizeId(row.id) === id) row[col] = box.checked; });
+                    renderCount();
+                });
+
+                // The default of a column is for everybody: it sets every box of the column and clears its exceptions.
+                // Putting the default back to what it was gives the column back as it was, exceptions (saved or not) included.
+                [['DefaultCanOrganize', 'org'], ['DefaultCanVote', 'vote']].forEach(function (pair) {
+                    var col = pair[1];
+                    document.getElementById(pair[0]).addEventListener('change', function (e) {
+                        var value = e.target.checked;
+                        var before = stash[col];
+                        if (before && before.def === value) {
+                            rows.forEach(function (row) { if (!row.admin && before.values.hasOwnProperty(row.id)) row[col] = before.values[row.id]; });
+                            stash[col] = null;
+                        } else {
+                            var values = {};
+                            rows.forEach(function (row) { if (!row.admin) { values[row.id] = row[col]; row[col] = value; } });
+                            stash[col] = { def: defaults[col], values: values };
+                        }
+                        defaults[col] = value;
+                        renderRows();
                     });
                 });
 
+                document.getElementById("SyncVoteCancel").addEventListener("click", function () {
+                    document.getElementById('UserFilter').value = '';
+                    load();
+                });
+
+                // Enter in the filter is not a request to save.
+                document.getElementById('UserFilter').addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter') e.preventDefault();
+                });
+
+                // The settings of the General tab (and "show every room") take effect as soon as they change: each one is written
+                // alone, on top of what the server has, so it never carries along a permissions table that is still being edited.
+                // They go one after the other: two quick changes would each read the configuration before the other was written,
+                // and the second write would undo the first.
+                var saving = Promise.resolve();
+                function saveSetting(changes) {
+                    saving = saving.then(function () {
+                        return ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                            Object.keys(changes).forEach(function (key) { config[key] = changes[key]; });
+                            return ApiClient.updatePluginConfiguration(pluginId, config);
+                        }).then(function (result) {
+                            Dashboard.processPluginConfigurationUpdateResult(result);
+                        });
+                    }).catch(function () { });
+                    return saving;
+                }
+
+                function number(id, min, max, fallback) {
+                    var el = document.getElementById(id);
+                    var n = Math.min(max, Math.max(min, parseInt(el.value) || fallback));
+                    el.value = n;
+                    return n;
+                }
+
+                [
+                    ['DefaultTimeLimit', function (el) { return parseInt(el.value); }],
+                    ['MaxRoomMembers', function () { return number('MaxRoomMembers', 2, 50, 10); }],
+                    ['WrongCodeAttempts', function () { return number('WrongCodeAttempts', 1, 20, 7); }],
+                    ['DefaultSortBy', function (el) { return el.value; }],
+                    ['Language', function (el) { return el.value; }],
+                    ['AutoStartVoting', function (el) { return el.checked; }],
+                    ['InjectWebClient', function (el) { return el.checked; }],
+                    ['AllowPublicRooms', function (el) { return el.checked; }]
+                ].forEach(function (setting) {
+                    var el = document.getElementById(setting[0]);
+                    el.addEventListener('change', function () {
+                        var changes = {};
+                        changes[setting[0]] = setting[1](el);
+                        saveSetting(changes).then(function () {
+                            // The language of the screens of this page follows the one just chosen.
+                            if (setting[0] === 'Language') return loadI18n().then(renderRows);
+                        });
+                    });
+                });
+
+                // Save is for the permissions: the two defaults and the exceptions, nothing else.
                 document.getElementById("SyncVoteConfigForm").addEventListener("submit", function (e) {
-                    Dashboard.showLoadingMsg();
                     e.preventDefault();
+                    if (document.getElementById('SyncVoteSave').disabled) return false;
+                    Dashboard.showLoadingMsg();
 
                     ApiClient.getPluginConfiguration(pluginId).then(function (config) {
-                        config.DefaultTimeLimit = parseInt(document.getElementById("DefaultTimeLimit").value);
-                        config.MaxRoomMembers = parseInt(document.getElementById("MaxRoomMembers").value);
-                        config.WrongCodeAttempts = Math.min(20, Math.max(1, parseInt(document.getElementById("WrongCodeAttempts").value) || 7));
-                        config.DefaultSortBy = document.getElementById("DefaultSortBy").value;
-                        config.Language = document.getElementById("Language").value;
-                        config.AllowPublicRooms = document.getElementById("AllowPublicRooms").checked;
-                        config.AutoStartVoting = document.getElementById("AutoStartVoting").checked;
-                        config.DefaultCanOrganize = document.getElementById("DefaultCanOrganize").checked;
-                        config.DefaultCanVote = document.getElementById("DefaultCanVote").checked;
-                        config.InjectWebClient = document.getElementById("InjectWebClient").checked;
+                        config.DefaultCanOrganize = defaults.org;
+                        config.DefaultCanVote = defaults.vote;
+
+                        // Only what differs from the default is written; a permission equal to it follows the default.
+                        config.UserPermissionOverrides = rows.filter(function (row) {
+                            return isException(row) || row.kept;
+                        }).map(function (row) {
+                            if (row.kept) return row.kept;
+                            return {
+                                UserId: row.id,
+                                CanOrganize: row.org !== defaults.org ? row.org : null,
+                                CanVote: row.vote !== defaults.vote ? row.vote : null
+                            };
+                        });
 
                         ApiClient.updatePluginConfiguration(pluginId, config).then(function (result) {
                             Dashboard.processPluginConfigurationUpdateResult(result);
+                            load();
                         });
                     });
 

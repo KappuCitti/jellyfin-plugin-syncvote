@@ -99,6 +99,19 @@ try {
     Check "user who cannot vote is refused before anything else" ($v.Status -eq 403) "status $($v.Status)"
     Set-Config @{ DefaultCanVote = $true }
 
+    # An exception names only what it changes: the other permission keeps following the default.
+    Set-Config @{ DefaultCanOrganize = $true; DefaultCanVote = $true; UserPermissionOverrides = @(@{ UserId = $sv.UserId; CanVote = $false }) }
+    $p = Call $sv GET "/SyncVote/Permissions"
+    Check "an exception on voting leaves organizing at the default (true)" ($p.Body.CanOrganize -eq $true -and $p.Body.CanVote -eq $false) ($p.Body | ConvertTo-Json -Compress)
+    Set-Config @{ DefaultCanOrganize = $false }
+    $p = Call $sv GET "/SyncVote/Permissions"
+    Check "...and follows it when the default changes (false), the exception stays" ($p.Body.CanOrganize -eq $false -and $p.Body.CanVote -eq $false) ($p.Body | ConvertTo-Json -Compress)
+    $v = Call $sv POST "/SyncVote/Vote" @{ RoomId = [guid]::NewGuid(); ItemId = [guid]::NewGuid(); IsLike = $true }
+    Check "the exception on voting is enforced (403)" ($v.Status -eq 403) "status $($v.Status)"
+    $r = Call $root GET "/SyncVote/Permissions?userId=$($sv.UserId)"
+    Check "an administrator can read the permissions of another user" ($r.Status -eq 200 -and $r.Body.CanVote -eq $false) "status $($r.Status)"
+    Set-Config @{ DefaultCanOrganize = $true; UserPermissionOverrides = @() }
+
     Write-Host "== max members"
     Set-Config @{ MaxRoomMembers = 1 }
     $r = Call $root POST "/SyncVote/Room" $body
@@ -150,10 +163,169 @@ try {
     Check "config page lists the new options" ((Js "!!document.querySelector('#InjectWebClient') && !!document.querySelector('#DefaultCanOrganize') && !!document.querySelector('#DefaultCanVote')"))
     if ($ChangeServerLanguage) { Check "the settings page follows the server language (Italian)" ((Js "document.querySelector('#SyncVoteConfigForm').innerText.includes('Tempo limite predefinito')")) }
     Check "config page labels are translated (no raw keys)" (-not (Js "/config\.|btn\.save/.test(document.querySelector('#SyncVoteConfigForm').innerText)"))
-    Js "document.querySelector('#MaxRoomMembers').value = '7'; document.querySelector('#WrongCodeAttempts').value = '3'; document.querySelector('#InjectWebClient').checked = false; document.querySelector('#SyncVoteConfigForm').dispatchEvent(new Event('submit', {cancelable:true, bubbles:true})); true" | Out-Null
-    Start-Sleep 2
+    # The settings of the General tab are saved as they change, with no button.
+    Check "General has no Save button, Save and Cancel are on the Permissions tab" ((Js "!document.querySelector('[data-panel=general] button[type=submit]') && !!document.querySelector('[data-panel=permissions] #SyncVoteSave') && !!document.querySelector('[data-panel=permissions] #SyncVoteCancel')"))
+    Js "document.querySelector('#MaxRoomMembers').value = '7'; document.querySelector('#MaxRoomMembers').dispatchEvent(new Event('change', {bubbles:true})); true" | Out-Null
+    Start-Sleep 1
     $saved = Invoke-RestMethod "$Base/Plugins/$pluginId/Configuration" -Headers $root.Headers
-    Check "saving from the page stores the options" ($saved.MaxRoomMembers -eq 7 -and $saved.WrongCodeAttempts -eq 3 -and $saved.InjectWebClient -eq $false) ($saved | ConvertTo-Json -Compress)
+    Check "a number changed on General is saved right away" ($saved.MaxRoomMembers -eq 7) ($saved | ConvertTo-Json -Compress)
+    Js "document.querySelector('#WrongCodeAttempts').value = '3'; document.querySelector('#WrongCodeAttempts').dispatchEvent(new Event('change', {bubbles:true})); true" | Out-Null
+    Js "var c = document.querySelector('#InjectWebClient'); c.checked = false; c.dispatchEvent(new Event('change', {bubbles:true})); true" | Out-Null
+    Js "document.querySelector('#MaxRoomMembers').value = '999'; document.querySelector('#MaxRoomMembers').dispatchEvent(new Event('change', {bubbles:true})); true" | Out-Null
+    Start-Sleep 1.5
+    $saved = Invoke-RestMethod "$Base/Plugins/$pluginId/Configuration" -Headers $root.Headers
+    Check "a checkbox and another number too, and a number out of range is brought back to the limit (50)" ($saved.WrongCodeAttempts -eq 3 -and $saved.InjectWebClient -eq $false -and $saved.MaxRoomMembers -eq 50 -and (Js "document.querySelector('#MaxRoomMembers').value") -eq "50") ($saved | ConvertTo-Json -Compress)
+    Js "document.querySelector('#MaxRoomMembers').value = '7'; document.querySelector('#MaxRoomMembers').dispatchEvent(new Event('change', {bubbles:true})); true" | Out-Null
+    Start-Sleep 1
+    Check "Save and Cancel are off while nothing about the permissions changed" ((Js "document.querySelector('#SyncVoteSave').disabled && document.querySelector('#SyncVoteCancel').disabled"))
+
+    Write-Host "== admin page: tabs and permissions per user"
+    function Get-Overrides { @((Invoke-RestMethod "$Base/Plugins/$pluginId/Configuration" -Headers $root.Headers).UserPermissionOverrides) }
+    function Same-User($a, $b) { ([string]$a -replace '-', '') -eq ([string]$b -replace '-', '') }
+    function Open-ConfigPage {
+        Js "location.hash = '#/home'; true" | Out-Null
+        Start-Sleep -Milliseconds 800
+        Js "location.hash = '#/configurationpage?name=SyncVote'; true" | Out-Null
+        # The page stays in the DOM between visits: wait for this visit's load, not for the rows of the last one.
+        Wait-Js "!!document.querySelector('#SyncVoteConfigPage[data-loaded]')" 15 | Out-Null
+    }    # The two boxes (organize, vote) of the row that shows $name, or $null.
+    function Get-Row($name) {
+        $json = Js "(function(){ var tr = Array.from(document.querySelectorAll('#UserRows tr')).find(function (r) { return r.textContent.indexOf('$name') !== -1 }); if (!tr) return null; var b = tr.querySelectorAll('input[type=checkbox]'); return JSON.stringify({ org: b[0].checked, vote: b[1].checked, disabled: b[0].disabled && b[1].disabled, text: tr.textContent.trim() }) })()"
+        if ($json) { $json | ConvertFrom-Json } else { $null }
+    }
+    function Click-Box($name, $col) { Js "(function(){ var tr = Array.from(document.querySelectorAll('#UserRows tr')).find(function (r) { return r.textContent.indexOf('$name') !== -1 }); tr.querySelectorAll('input[type=checkbox]')[$col].click(); return true })()" | Out-Null }
+    function Save-Page { Js "document.querySelector('#SyncVoteSave').click(); true" | Out-Null; Start-Sleep 2 }
+    function Buttons { Js "JSON.stringify({ save: !document.querySelector('#SyncVoteSave').disabled, cancel: !document.querySelector('#SyncVoteCancel').disabled })" | ConvertFrom-Json }
+
+    # A user that does not exist (any more) with an exception, and one real user with an exception on voting only.
+    $ghost = [guid]::NewGuid()
+    Set-Config @{ DefaultCanOrganize = $true; DefaultCanVote = $true; UserPermissionOverrides = @(@{ UserId = $sv.UserId; CanVote = $false }, @{ UserId = $ghost; CanOrganize = $false }) }
+    Open-ConfigPage
+
+    Check "the General tab is shown first" ((Js "!document.querySelector('[data-panel=general]').hidden && document.querySelector('[data-panel=permissions]').hidden"))
+    Check "the settings moved to the Permissions tab are not on General" ((Js "!document.querySelector('[data-panel=general] #AllowPublicRooms') && !document.querySelector('[data-panel=general] #DefaultCanVote')"))
+    Js "document.querySelector('[data-tab=permissions]').click(); true" | Out-Null
+    Check "the Permissions tab shows its panel and hides General" ((Js "document.querySelector('[data-panel=general]').hidden && !document.querySelector('[data-panel=permissions]').hidden && document.querySelector('[data-tab=permissions]').classList.contains('active')"))
+    Check "the three settings are on the Permissions tab" ((Js "['AllowPublicRooms','DefaultCanOrganize','DefaultCanVote'].every(function (id) { return !!document.querySelector('[data-panel=permissions] #' + id) })"))
+    Check "the table is collapsed until opened" (-not (Js "document.querySelector('#UserPermissionsBox').open"))
+    Js "document.querySelector('#UserPermissionsBox').open = true; true" | Out-Null
+    Save-Shot "$OutDir\config-permissions.png"
+
+    $row = Get-Row "svtest"
+    Check "a user with an exception on voting: organize at the default (ticked), vote cleared" ($row -and $row.org -eq $true -and $row.vote -eq $false) ($row | ConvertTo-Json -Compress)
+    $row = Get-Row "root"
+    Check "an administrator is ticked, locked and marked" ($row -and $row.org -and $row.vote -and $row.disabled -and $row.text -match "Administrator|Amministratore") ($row | ConvertTo-Json -Compress)
+    $row = Get-Row $ghost.ToString().Substring(0, 8)
+    Check "a deleted user is listed with the start of the id, not the whole one" ($row -and $row.org -eq $false -and $row.vote -eq $true -and $row.text -notmatch $ghost.ToString()) ($row | ConvertTo-Json -Compress)
+    Check "the count of users with exceptions is shown" ((Js "document.querySelector('#UserPermissionsCount').textContent.indexOf('2') !== -1")) (Js "document.querySelector('#UserPermissionsCount').textContent")
+    $off = Js "(function(){ var th = document.querySelectorAll('.svUsers th.svCheck'); var mid = function (el) { var r = el.getBoundingClientRect(); return r.left + r.width / 2 }; var worst = 0; document.querySelectorAll('#UserRows tr').forEach(function (tr) { tr.querySelectorAll('td.svCheck').forEach(function (td, i) { var box = td.querySelector('.checkboxOutline') || td.querySelector('input'); worst = Math.max(worst, Math.abs(mid(box) - mid(th[i]))) }) }); return worst })()"
+    Check "every box sits under the header of its column" ($off -le 2) "off by $off px"
+    Check "no raw keys on the Permissions tab"(-not (Js "/config\.|btn\./.test(document.querySelector('[data-panel=permissions]').innerText)"))
+
+    # Filter by name (also by the start of the id of a deleted user).
+    Js "var f = document.querySelector('#UserFilter'); f.value = 'svt'; f.dispatchEvent(new Event('input', {bubbles:true})); true" | Out-Null
+    Check "the filter keeps only the matching users" ((Js "document.querySelectorAll('#UserRows tr').length") -eq 1 -and (Get-Row "svtest"))
+    Js "var f = document.querySelector('#UserFilter'); f.value = 'zzz-nobody'; f.dispatchEvent(new Event('input', {bubbles:true})); true" | Out-Null
+    Check "a filter with no match says so" ((Js "document.querySelectorAll('#UserRows input').length") -eq 0 -and (Js "document.querySelector('#UserRows').innerText.trim().length") -gt 0)
+    Js "var f = document.querySelector('#UserFilter'); f.value = '$($ghost.ToString().Substring(0, 8))'; f.dispatchEvent(new Event('input', {bubbles:true})); true" | Out-Null
+    Check "the filter finds a deleted user by the start of the id" ((Js "document.querySelectorAll('#UserRows tr').length") -eq 1)
+    Js "var f = document.querySelector('#UserFilter'); f.value = ''; f.dispatchEvent(new Event('input', {bubbles:true})); true" | Out-Null
+
+    # Save and Cancel wake up with the first change and go back to sleep when it is undone by hand.
+    $b = Buttons
+    Check "Save and Cancel are off while nothing changed" (-not $b.save -and -not $b.cancel) ($b | ConvertTo-Json -Compress)
+    $look = "(function(){ var s = getComputedStyle(document.querySelector('#SyncVoteSave')); return JSON.stringify({ opacity: parseFloat(s.opacity), filter: s.filter }) })()"
+    $off = Js $look | ConvertFrom-Json
+    Check "and they look off: faded and grey, not like a live button" ($off.opacity -lt 0.6 -and $off.filter -match "grayscale") ($off | ConvertTo-Json -Compress)
+    Save-Shot "$OutDir\config-save-off.png"
+    Click-Box "svtest" 0
+    $b = Buttons
+    Check "a change turns Save and Cancel on" ($b.save -and $b.cancel) ($b | ConvertTo-Json -Compress)
+    $on = Js $look | ConvertFrom-Json
+    Start-Sleep -Milliseconds 800   # Jellyfin fades buttons
+    $on = Js $look | ConvertFrom-Json
+    Check "and they look alive again" ($on.opacity -eq 1) ($on | ConvertTo-Json -Compress)
+    Save-Shot "$OutDir\config-save-on.png"
+    Click-Box "svtest" 0
+    $b = Buttons
+    Check "putting the box back by hand turns them off again" (-not $b.save -and -not $b.cancel) ($b | ConvertTo-Json -Compress)
+    Js "document.querySelector('#DefaultCanVote').click(); true" | Out-Null
+    Check "changing a default turns them on" ((Buttons).save)
+    Js "document.querySelector('#DefaultCanVote').click(); true" | Out-Null
+    Check "and putting it back turns them off" (-not (Buttons).save)
+    Js "var f = document.querySelector('#UserFilter'); f.dispatchEvent(new KeyboardEvent('keydown', {key:'Enter', bubbles:true, cancelable:true})); true" | Out-Null
+
+    # A box is an exception; nothing is written before Save.
+    Click-Box "svtest" 0
+    # ...while the General tab keeps saving by itself, without carrying the table that is still being edited.
+    Js "document.querySelector('#MaxRoomMembers').value = '5'; document.querySelector('#MaxRoomMembers').dispatchEvent(new Event('change', {bubbles:true})); true" | Out-Null
+    Start-Sleep 1.5
+    $cfg = Invoke-RestMethod "$Base/Plugins/$pluginId/Configuration" -Headers $root.Headers
+    $o = @($cfg.UserPermissionOverrides) | Where-Object { Same-User $_.UserId $sv.UserId }
+    Check "a setting of General is saved while the permissions are being edited, and they stay unsaved" ($cfg.MaxRoomMembers -eq 5 -and $o.CanVote -eq $false -and $null -eq $o.CanOrganize -and (Buttons).save) ($cfg | ConvertTo-Json -Compress -Depth 5)
+    Js "document.querySelector('#MaxRoomMembers').value = '7'; document.querySelector('#MaxRoomMembers').dispatchEvent(new Event('change', {bubbles:true})); true" | Out-Null
+    $o = Get-Overrides | Where-Object { Same-User $_.UserId $sv.UserId }
+    Check "a box changed in the table is not saved yet" ($o -and $o.CanVote -eq $false -and $null -eq $o.CanOrganize) ($o | ConvertTo-Json -Compress)
+    Click-Box "svtest" 1
+    Save-Page
+    $o = Get-Overrides | Where-Object { Same-User $_.UserId $sv.UserId }
+    Check "Save writes the exception for the organize box (vote is back at the default, so no longer an exception)" ($o -and $o.CanOrganize -eq $false -and $null -eq $o.CanVote) ($o | ConvertTo-Json -Compress)
+    $g = Get-Overrides | Where-Object { Same-User $_.UserId $ghost }
+    Check "the exception of the deleted user is kept" ($g -and $g.CanOrganize -eq $false -and $null -eq $g.CanVote) ($g | ConvertTo-Json -Compress)
+    $p = Call $sv GET "/SyncVote/Permissions"
+    Check "the saved exception takes effect for the user" ($p.Body.CanOrganize -eq $false -and $p.Body.CanVote -eq $true) ($p.Body | ConvertTo-Json -Compress)
+
+    # Cancel throws the unsaved changes away.
+    Open-ConfigPage
+    Js "document.querySelector('#UserPermissionsBox').open = true; true" | Out-Null
+    Click-Box "svtest" 1
+    Js "document.querySelector('#MaxRoomMembers').value = '33'; true" | Out-Null
+    Js "document.querySelector('#SyncVoteCancel').click(); true" | Out-Null
+    Start-Sleep 1.5
+    $row = Get-Row "svtest"
+    Check "Cancel restores the table and the other settings" ($row -and $row.vote -eq $true -and (Js "document.querySelector('#MaxRoomMembers').value") -eq "7") ($row | ConvertTo-Json -Compress)
+
+    # Two exceptions in the table (one saved, one not), then the default of a column off and on again: the column is as it was.
+    Js "document.querySelector('#UserPermissionsBox').open = true; true" | Out-Null
+    Click-Box "svtest" 1
+    $before = @((Get-Row "svtest"), (Get-Row $ghost.ToString().Substring(0, 8))) | ForEach-Object { "$($_.org)/$($_.vote)" }
+    Js "document.querySelector('#DefaultCanOrganize').click(); true" | Out-Null
+    $mid = Get-Row "svtest"
+    Check "the default off sets the column (nothing is an exception on organizing any more)" ($mid.org -eq $false) ($mid | ConvertTo-Json -Compress)
+    Js "document.querySelector('#DefaultCanOrganize').click(); true" | Out-Null
+    $after = @((Get-Row "svtest"), (Get-Row $ghost.ToString().Substring(0, 8))) | ForEach-Object { "$($_.org)/$($_.vote)" }
+    Check "Save stays on, the column has an unsaved exception in the other box" ((Buttons).save)
+    Check "the default back on gives the exceptions back, saved or not ($($before -join ' ; '))" (($before -join ';') -eq ($after -join ';') -and $after[0] -eq "False/False" -and $after[1] -eq "False/True") "before $($before -join ' ; ') after $($after -join ' ; ')"
+    Check "the count of exceptions is the same as before" ((Js "document.querySelector('#UserPermissionsCount').textContent.indexOf('2') !== -1"))
+    Js "document.querySelector('#DefaultCanVote').click(); document.querySelector('#DefaultCanVote').click(); true" | Out-Null
+    $again = Get-Row "svtest"
+    Check "the same for the other column" ($again.org -eq $false -and $again.vote -eq $false) ($again | ConvertTo-Json -Compress)
+    Js "document.querySelector('#SyncVoteCancel').click(); true" | Out-Null
+    Start-Sleep 1.5
+
+    # The default of a column is for everybody: it sets the column and drops its exceptions.
+    Js "document.querySelector('#UserPermissionsBox').open = true; document.querySelector('#DefaultCanOrganize').click(); true" | Out-Null
+    $a = Get-Row "svtest"; $b = Get-Row $ghost.ToString().Substring(0, 8)
+    Check "clearing the default clears the whole column, administrators stay locked on" ($a.org -eq $false -and $b.org -eq $false -and (Get-Row "root").org -eq $true)
+    Save-Page
+    $saved = Invoke-RestMethod "$Base/Plugins/$pluginId/Configuration" -Headers $root.Headers
+    Check "...and no exception is left on organizing, nor any entry at all" ($saved.DefaultCanOrganize -eq $false -and @($saved.UserPermissionOverrides).Count -eq 0) ($saved | ConvertTo-Json -Compress -Depth 5)
+    $p = Call $sv GET "/SyncVote/Permissions"
+    Check "the user follows the new default" ($p.Body.CanOrganize -eq $false -and $p.Body.CanVote -eq $true)
+
+    # An exception against a default that is off, then the default back on.
+    Open-ConfigPage
+    Js "document.querySelector('#UserPermissionsBox').open = true; true" | Out-Null
+    Click-Box "svtest" 0
+    Save-Page
+    $o = Get-Overrides | Where-Object { Same-User $_.UserId $sv.UserId }
+    $r = Call $sv POST "/SyncVote/Room" $body
+    Check "a user allowed against a default that is off can organize" ($o -and $o.CanOrganize -eq $true -and $r.Status -eq 200) "status $($r.Status) $($o | ConvertTo-Json -Compress)"
+    if ($r.Status -eq 200) { Call $sv DELETE "/SyncVote/Room/$($r.Body.Id)" | Out-Null }
+    Open-ConfigPage
+    Js "document.querySelector('#UserPermissionsBox').open = true; document.querySelector('#DefaultCanOrganize').click(); true" | Out-Null
+    Save-Page
+    Check "putting the default back on drops the exception again" (@(Get-Overrides).Count -eq 0 -and (Invoke-RestMethod "$Base/Plugins/$pluginId/Configuration" -Headers $root.Headers).DefaultCanOrganize -eq $true)
 }
 finally {
     Stop-Chrome

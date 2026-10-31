@@ -139,7 +139,11 @@ not know, tick **Ask for a code to vote** when you create the room:
 
 ## Settings
 
-Dashboard → Plugins → SyncVote.
+Dashboard → Plugins → SyncVote. The page has two tabs, **General** and **Permissions**. Every setting is saved as soon as you
+change it, except the defaults and the table of users in Permissions: those are saved together with **Save** (**Cancel** throws
+the changes away). Both buttons stay off until something differs from what is saved, and go off again if you put it back by hand.
+
+**General**
 
 | Option | What it does |
 |:---|:---|
@@ -147,30 +151,25 @@ Dashboard → Plugins → SyncVote.
 | Max room members | How many people can join a room |
 | Wrong room codes allowed | How many wrong codes a user can type for a room with a [code](#room-code) before they have to wait (7) |
 | Language | `Same as the server` (default), English or Italiano |
-| Show every room to everyone | When off, people only see rooms they are in or the one of their SyncPlay group |
 | Auto-start voting | Start when every SyncPlay member has joined the room |
-| Users can organize / can vote | Defaults for everybody; administrators can always do both |
 | Add SyncVote to the web interface | Turn off only if another plugin loads the script for you |
 
-<details>
-<summary>Allow or forbid single users</summary>
+**Permissions**
 
-The exceptions per user are not in the settings page yet. Stop the server, add them to
-`plugins/configurations/KappuCitti.Plugin.SyncVote.xml` in the Jellyfin data folder, and start it again:
+| Option | What it does |
+|:---|:---|
+| Show every room to everyone | When off, people only see rooms they are in or the one of their SyncPlay group |
+| Users can organize / can vote | The default for everybody, users created later included; administrators can always do both |
+| Permissions per user | A collapsed table of all users with a box for each of the two permissions, and a filter by name |
 
-```xml
-<UserPermissionOverrides>
-  <UserPermissions>
-    <UserId>3546ba77-ea1c-4d51-b4b1-c462ce9c1830</UserId>
-    <CanOrganize>false</CanOrganize>
-    <CanVote>true</CanVote>
-  </UserPermissions>
-</UserPermissionOverrides>
-```
+In the table a tick means the user can. Changing a box makes an exception to the default of its column; changing the default
+itself sets the whole column and clears its exceptions (put the default back and the column is as it was, unsaved exceptions
+included). Only what differs from the default is saved, and a permission without an
+exception keeps following the default. Administrators are shown ticked and cannot be changed. Exceptions of users that were
+deleted are still listed (as *Deleted user*, with the start of their id): put their boxes back to the default to drop them.
 
-The user ids are in the address of the user's page in the dashboard.
-
-</details>
+The exceptions are stored in `plugins/configurations/KappuCitti.Plugin.SyncVote.xml` in the Jellyfin data folder; there is no
+need to edit that file any more, but a hand-written one from earlier versions keeps working.
 
 ## Good to know
 

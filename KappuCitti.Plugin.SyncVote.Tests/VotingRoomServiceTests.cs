@@ -570,7 +570,7 @@ public class VotingRoomServiceTests
     {
         _settings.Configuration.DefaultCanOrganize = false;
         _settings.Configuration.DefaultCanVote = true;
-        _settings.Configuration.UserPermissionOverrides.Add(new UserPermissions { UserId = Alice, CanOrganize = true, CanVote = false });
+        _settings.Configuration.UserPermissionOverrides.Add(new UserPermissionOverride { UserId = Alice, CanOrganize = true, CanVote = false });
 
         var bob = _service.GetUserPermissions(Bob, false);
         Assert.False(bob.CanOrganize);
@@ -583,6 +583,42 @@ public class VotingRoomServiceTests
         var admin = _service.GetUserPermissions(Bob, true);
         Assert.True(admin.CanOrganize);
         Assert.True(admin.CanVote);
+    }
+
+    [Fact]
+    public void AnExceptionOnlyChangesThePermissionItNames()
+    {
+        _settings.Configuration.DefaultCanOrganize = true;
+        _settings.Configuration.DefaultCanVote = true;
+        _settings.Configuration.UserPermissionOverrides.Add(new UserPermissionOverride { UserId = Alice, CanVote = false });
+
+        Assert.True(_service.GetUserPermissions(Alice, false).CanOrganize);
+        Assert.False(_service.GetUserPermissions(Alice, false).CanVote);
+
+        _settings.Configuration.DefaultCanOrganize = false;
+        Assert.False(_service.GetUserPermissions(Alice, false).CanOrganize);
+    }
+
+    [Fact]
+    public void ExceptionsKeepTheirXmlShape()
+    {
+        // A file written by hand for the old model must still load, and a permission left out must stay out of the file.
+        const string legacy = "<PluginConfiguration><UserPermissionOverrides><UserPermissions>"
+            + "<UserId>3546ba77-ea1c-4d51-b4b1-c462ce9c1830</UserId><CanOrganize>false</CanOrganize><CanVote>true</CanVote>"
+            + "</UserPermissions></UserPermissionOverrides></PluginConfiguration>";
+        var serializer = new System.Xml.Serialization.XmlSerializer(typeof(PluginConfiguration));
+
+        var loaded = (PluginConfiguration)serializer.Deserialize(new System.IO.StringReader(legacy))!;
+        var entry = Assert.Single(loaded.UserPermissionOverrides);
+        Assert.False(entry.CanOrganize);
+        Assert.True(entry.CanVote);
+
+        loaded.UserPermissionOverrides.Add(new UserPermissionOverride { UserId = Alice, CanVote = false });
+        var written = new System.IO.StringWriter();
+        serializer.Serialize(written, loaded);
+        var xml = written.ToString();
+        Assert.Contains("<UserPermissions>", xml, StringComparison.Ordinal);
+        Assert.Single(System.Text.RegularExpressions.Regex.Matches(xml, "<CanOrganize>"));
     }
 
     [Fact]
