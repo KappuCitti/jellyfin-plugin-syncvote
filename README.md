@@ -23,7 +23,8 @@ few minutes, and the most liked title is queued and played in the SyncPlay group
   <img alt="Swiping through the titles: the poster follows the finger and a green or red edge shows the vote" src="docs/images/swipe.gif" width="420">
 </p>
 
-It looks and feels like Jellyfin itself (same dialogs, same components) and speaks English and Italian.
+It looks and feels like Jellyfin itself (same dialogs, same components) and speaks English, Italian, Spanish, German, French and Estonian (the last four were translated with AI and may be imperfect:
+corrections are welcome, see [CONTRIBUTING](CONTRIBUTING.md)).
 
 ## What you get
 
@@ -150,7 +151,7 @@ the changes away). Both buttons stay off until something differs from what is sa
 | Default time limit / default sort order | Starting values of the create form |
 | Max room members | How many people can join a room |
 | Wrong room codes allowed | How many wrong codes a user can type for a room with a [code](#room-code) before they have to wait (7) |
-| Language | `Same as the server` (default), English or Italiano |
+| Language | `Same as the server` (default), Deutsch, Eesti, English, Español, Français or Italiano |
 | Auto-start voting | Start when every SyncPlay member has joined the room |
 | Add SyncVote to the web interface | Turn off only if another plugin loads the script for you |
 

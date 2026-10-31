@@ -56,8 +56,17 @@ function Set-ServerLanguage($culture) {
 # only do it on a test server nobody is using (-ChangeServerLanguage). Otherwise the texts are checked against the current language.
 if ($ChangeServerLanguage) { Set-ServerLanguage "en-US" }
 $hasBoxSets = [bool]@((Invoke-RestMethod "$Base/SyncVote/Library/Collections" -Headers $root.Headers) | Where-Object { $_.Type -eq "boxset" })
-$serverIsItalian = ((Invoke-RestMethod "$Base/System/Configuration" -Headers $root.Headers).UICulture -match '^it')
-$T = if ($serverIsItalian) { @{ Create = "Crea stanza"; Close = "Chiudi stanza"; Folders = "Cartelle libreria"; Collections = "Collezioni"; Genres = "Generi"; NoCollections = "Ancora nessuna collezione"; Runoff = "ballottaggio" } } else { @{ Create = "Create room"; Close = "Close room"; Folders = "Library folders"; Collections = "Collections"; Genres = "Genres"; NoCollections = "No collections yet"; Runoff = "runoff" } }
+# The texts the checks look for, in the language the server will give the screens (English for a language the plugin does not have).
+$texts = @{
+    it = @{ Create = "Crea stanza"; Close = "Chiudi stanza"; Folders = "Cartelle libreria"; Collections = "Collezioni"; Genres = "Generi"; NoCollections = "Ancora nessuna collezione"; Runoff = "ballottaggio" }
+    es = @{ Create = "Crear sala"; Close = "Cerrar sala"; Folders = "Carpetas de la biblioteca"; Collections = "Colecciones"; Genres = "Géneros"; NoCollections = "Todavía no hay colecciones"; Runoff = "segunda vuelta" }
+    de = @{ Create = "Raum erstellen"; Close = "Raum schließen"; Folders = "Bibliotheksordner"; Collections = "Sammlungen"; Genres = "Genres"; NoCollections = "Noch keine Sammlungen"; Runoff = "Stichwahl" }
+    fr = @{ Create = "Créer la salle"; Close = "Fermer la salle"; Folders = "Dossiers de la bibliothèque"; Collections = "Collections"; Genres = "Genres"; NoCollections = "Pas encore de collections"; Runoff = "second tour" }
+    et = @{ Create = "Loo ruum"; Close = "Sulge ruum"; Folders = "Meediateegi kaustad"; Collections = "Kogud"; Genres = "Žanrid"; NoCollections = "Kogusid veel pole"; Runoff = "kordushääletus" }
+    en = @{ Create = "Create room"; Close = "Close room"; Folders = "Library folders"; Collections = "Collections"; Genres = "Genres"; NoCollections = "No collections yet"; Runoff = "runoff" }
+}
+$serverLanguage = ((Invoke-RestMethod "$Base/System/Configuration" -Headers $root.Headers).UICulture -split '[-_]')[0].ToLowerInvariant()
+$T = $(if ($texts.ContainsKey($serverLanguage)) { $texts[$serverLanguage] } else { $texts.en }).Clone()
 $expectedSections = if ($hasBoxSets) { "$($T.Folders)|$($T.Collections)|$($T.Genres)" } else { "$($T.Folders)|$($T.Genres)" }
 # Remove stale rooms left by an interrupted run.
 foreach ($r in @((Call $root GET "/SyncVote/Rooms").Body)) { Call $root DELETE "/SyncVote/Room/$($r.Id)" | Out-Null }
@@ -407,7 +416,9 @@ try {
     Js "window.__realFetch = window.fetch; window.fetch = (u, o) => (o && o.method === 'DELETE') ? Promise.resolve(new Response('', { status: 403 })) : window.__realFetch(u, o); true" | Out-Null
     Js "document.querySelector('.svCloseRoom').click(); true" | Out-Null
     Start-Sleep -Milliseconds 800
-    Check "when the server refuses, the dialog stays open and a message says why" ((Js "!!document.querySelector('.svDialog')") -and (Js "Array.from(document.querySelectorAll('.svToast')).some(t => /close|chiudere/i.test(t.innerText))") -and @((Call $root GET "/SyncVote/Rooms").Body).Count -eq 1)
+    # The message is the "could not close" text of the language the server gives the screens now.
+    $couldNotClose = (Invoke-RestMethod "$Base/SyncVote/Client/i18n").Strings."msg.errorClosing" | ConvertTo-Json -Compress
+    Check "when the server refuses, the dialog stays open and a message says why" ((Js "!!document.querySelector('.svDialog')") -and (Js "Array.from(document.querySelectorAll('.svToast')).some(t => t.innerText.indexOf($couldNotClose) !== -1)") -and @((Call $root GET "/SyncVote/Rooms").Body).Count -eq 1)
     Js "window.fetch = window.__realFetch; document.querySelector('.svCloseRoom').click(); true" | Out-Null
     Start-Sleep 1
     Check "closing it for real removes the room and the dialog" ((@((Call $root GET "/SyncVote/Rooms").Body).Count -eq 0) -and (Js "!document.querySelector('.svDialog')"))

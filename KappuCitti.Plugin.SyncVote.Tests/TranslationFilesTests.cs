@@ -64,6 +64,32 @@ public class TranslationFilesTests
         Assert.Empty(keys.Where(k => !english.ContainsKey(k)));
     }
 
+    [Theory]
+    [MemberData(nameof(Languages))]
+    public void EveryLanguageIsOfferedInTheSettingsPage(string language)
+    {
+        var page = File.ReadAllText(Path.Combine(WebFolder, "..", "Configuration", "configPage.html"));
+        var options = Regex.Matches(page, @"<option value=""([a-z]+)"">").Select(m => m.Groups[1].Value);
+
+        Assert.Contains(language, options);
+    }
+
+    [Theory]
+    [InlineData("es")]
+    [InlineData("de")]
+    [InlineData("fr")]
+    [InlineData("et")]
+    [InlineData("it")]
+    public void ATranslationIsNotACopyOfEnglish(string language)
+    {
+        // A few words (names, "min") may be the same in another language: most of the texts must not be.
+        var english = Load("en");
+        var other = Load(language);
+        var same = english.Keys.Count(k => english[k] == other[k]);
+
+        Assert.True(same < english.Count / 10, $"{language}: {same} of {english.Count} texts are identical to English");
+    }
+
     [Fact]
     public void EveryKeyOfTheSettingsPageExists()
     {

@@ -26,11 +26,19 @@ The bug form asks for the following; it helps to have it at hand:
 2. Build and test it as described in the [development guide](docs/DEVELOPMENT.md): `dotnet test KappuCitti.Plugin.SyncVote.Tests`,
    and build **all** Jellyfin generations with `./build.ps1`, because a change that works for one can break another.
 3. Add a test when you can: a unit test for rules, an end-to-end check for behavior ([tests/e2e](tests/e2e/README.md)).
-4. Keep texts in the translation files (`Web/i18n/en.json` and `it.json` with the same keys).
+4. Keep texts in the translation files (`Web/i18n/<language>.json`, every file with the same keys as `en.json`).
 5. Open the pull request and say what it changes and how you tried it.
 
 > [!NOTE]
 > Code comments, commit messages and documentation are in English.
+
+## Translations
+
+The texts are in `KappuCitti.Plugin.SyncVote/Web/i18n/<language>.json`. Italian is by the maintainer; Spanish, German, French and
+Estonian were translated with AI and may be imperfect, so corrections are very welcome (a pull request on the file, or a comment
+on the [translation issue](https://github.com/KappuCitti/jellyfin-plugin-syncvote/issues/5)). To add a language, copy `en.json`,
+translate the values (the keys and the `{0}` placeholders stay), and add the language to the **Language** list of
+`Configuration/configPage.html`; two unit tests check both.
 
 ## Not planned
 

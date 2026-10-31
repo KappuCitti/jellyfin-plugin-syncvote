@@ -27,7 +27,8 @@ is the [README](README.md); this file is the short version of what an agent need
   `-Layout modern` after touching the client. `Dashboard.alert` cannot be used for dialogs (it forces a single OK button). Jellyfin lays the dialog
   footer over the content, so `syncvote.css` makes it a normal flex item in our dialogs.
 - **The settings page's `<script>` must stay inside the `data-role="page"` element**, otherwise Jellyfin drops it.
-- **Texts** live in `Web/i18n/en.json` and `it.json` (same keys, checked by a test). The server picks the language.
+- **Texts** live in `Web/i18n/<language>.json` (`en`, `it`, `es`, `de`, `fr`, `et`; same keys, checked by a test, and each one needs an
+  entry in the Language list of the settings page). The server picks the language.
 - Keep the plugin GUID identical in `Plugin.cs`, `Configuration/configPage.html` and `manifest.json`.
 - Code comments, commit messages and Markdown are written in English.
 
@@ -35,5 +36,5 @@ is the [README](README.md); this file is the short version of what an agent need
 
 Working on Jellyfin 10.10, 10.11 and 12: rooms, voting with a server-side time limit, filters (library folders, collections,
 genres, age rating, title), results, runoff, playing the winner in SyncPlay, access checks, permissions, an optional room code
-(made by the server, with a wait after wrong guesses and a button to make a new one), swipe animation, English and Italian.
+(made by the server, with a wait after wrong guesses and a button to make a new one), swipe animation, English, Italian, Spanish, German, French and Estonian.
 Rooms live in memory by design. See the [open issues](https://github.com/KappuCitti/jellyfin-plugin-syncvote/issues) for what is next.

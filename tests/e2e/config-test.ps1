@@ -49,14 +49,36 @@ try {
     Set-ServerLanguage "en-US"
     $r = Get-Strings
     Check "server in English -> English strings" ($r.Language -eq "en" -and $r.Strings."btn.createRoom" -eq "Create room")
+    Set-ServerLanguage "es-ES"
+    $r = Get-Strings
+    Check "server in Spanish -> Spanish strings" ($r.Language -eq "es" -and $r.Strings."btn.createRoom" -eq "Crear sala") "$($r.Language) / $($r.Strings.'btn.createRoom')"
+    Set-ServerLanguage "de-DE"
+    $r = Get-Strings
+    Check "server in German -> German strings" ($r.Language -eq "de" -and $r.Strings."btn.createRoom" -eq "Raum erstellen") "$($r.Language) / $($r.Strings.'btn.createRoom')"
     Set-ServerLanguage "fr-FR"
     $r = Get-Strings
+    Check "server in French -> French strings" ($r.Language -eq "fr" -and $r.Strings."btn.createRoom" -eq "Créer la salle") "$($r.Language) / $($r.Strings.'btn.createRoom')"
+    Set-ServerLanguage "et-EE"
+    $r = Get-Strings
+    Check "server in Estonian -> Estonian strings" ($r.Language -eq "et" -and $r.Strings."btn.createRoom" -eq "Loo ruum") "$($r.Language) / $($r.Strings.'btn.createRoom')"
+    Set-ServerLanguage "de-CH"
+    $r = Get-Strings
+    Check "a Swiss locale gets the language it is written in (de-CH -> German)" ($r.Language -eq "de") "$($r.Language)"
+    Set-ServerLanguage "pt-BR"
+    $r = Get-Strings
     Check "a language without translation falls back to English" ($r.Language -eq "en" -and $r.Strings."btn.createRoom" -eq "Create room")
-    Check "the list of languages is offered" (@($r.Available) -contains "en" -and @($r.Available) -contains "it")
+    $missing = @("de", "en", "es", "et", "fr", "it") | Where-Object { @($r.Available) -notcontains $_ }
+    Check "the list of languages is offered" ($missing.Count -eq 0) "missing: $($missing -join ', ')"
     Set-Config @{ Language = "it" }
     Set-ServerLanguage "en-US"
     $r = Get-Strings
     Check "the plugin option wins over the server" ($r.Language -eq "it" -and $r.Strings."btn.createRoom" -eq "Crea stanza")
+    Set-Config @{ Language = "de" }
+    $r = Get-Strings
+    Check "...also for German" ($r.Language -eq "de" -and $r.Strings."btn.createRoom" -eq "Raum erstellen")
+    Set-Config @{ Language = "es" }
+    $r = Get-Strings
+    Check "...and for Spanish" ($r.Language -eq "es" -and $r.Strings."btn.createRoom" -eq "Crear sala")
     Set-Config @{ Language = "klingon" }
     $r = Get-Strings
     Check "an unknown option value follows the server" ($r.Language -eq "en")
@@ -165,6 +187,7 @@ try {
     Check "config page opens and shows the saved values" ([bool]$form)
     Check "config page lists the new options" ((Js "!!document.querySelector('#InjectWebClient') && !!document.querySelector('#DefaultCanOrganize') && !!document.querySelector('#DefaultCanVote')"))
     if ($ChangeServerLanguage) { Check "the settings page follows the server language (Italian)" ((Js "document.querySelector('#SyncVoteConfigForm').innerText.includes('Tempo limite predefinito')")) }
+    Check "the Language list of the settings page offers every language the plugin has" ((Js "Array.from(document.querySelectorAll('#Language option')).map(function (o) { return o.value }).sort().join(',')") -eq "Auto,de,en,es,et,fr,it")
     Check "config page labels are translated (no raw keys)" (-not (Js "/config\.|btn\.save/.test(document.querySelector('#SyncVoteConfigForm').innerText)"))
     # The settings of the General tab are saved as they change, with no button.
     Check "General has no Save button, Save and Cancel are on the Permissions tab" ((Js "!document.querySelector('[data-panel=general] button[type=submit]') && !!document.querySelector('[data-panel=permissions] #SyncVoteSave') && !!document.querySelector('[data-panel=permissions] #SyncVoteCancel')"))
